@@ -1,0 +1,21 @@
+
+UpstreamAddr1: 120.27.220.175
+DealidList1: 
+  - 7021488
+
+UpstreamAddr2: 121.43.171.45:8588
+DealidList2: 
+  - 11564305tttt
+
+UpstreamAddr3: 121.43.171.45:8588
+DealidList3: 
+  - 11564305tttt
+
+UpstreamAddr4: 121.43.171.45:8588
+DealidList4: 
+  - 11564305tttt
+
+DefaultUpstreamAddr: 120.27.220.175 #192.168.170.25:898
+ListenPort: 80
+TimesBackToSource: 100
+NoExt: 1 #unused
