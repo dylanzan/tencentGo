@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -45,9 +46,11 @@ type bodyContent struct {
 }
 
 //使用分段map，将锁结构细粒化
-var bodyMap =concurrentMap.NewConcurrentMap()
+var bodyMap = concurrentMap.NewConcurrentMap()
+
 //var bodyMap map[string]bodyContent
 var rconfig RConfig
+
 //var mutex *sync.Mutex = new(sync.Mutex)
 
 type transport struct {
@@ -123,12 +126,12 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if len(newResponse.Seatbid) > 0 && len(newResponse.Seatbid[0].Bid) > 0 {
 		adid := *(newResponse.Seatbid[0].Bid[0].Adid)
 		//mutex.Lock()
-		bodyMap.Put(dealid,bodyContent{adid, 0})
+		bodyMap.Put(dealid, bodyContent{adid, 0})
 		//mutex.Unlock()
 		*newResponse.Seatbid[0].Bid[0].Ext = "ssp" + adid
 	} else {
 		//mutex.Lock()
-		bodyMap.Put(dealid,bodyContent{"0", 1})
+		bodyMap.Put(dealid, bodyContent{"0", 1})
 		//mutex.Unlock()
 	}
 
@@ -178,8 +181,8 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//mutex.Lock()
 	bodycontent, ok := bodyMap.Get(dealid)
 	//mutex.Unlock()
-	if ok==nil {
-		if bodycontent.(bodyContent).cnt < rconfig.TimesBackToSource {
+	if ok == nil {
+		if rand.Intn(rconfig.TimesBackToSource) > 1 {
 			id := *newRequest.Id
 			bidid := *(newRequest.Impression[0].Id)
 
@@ -187,7 +190,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			price := float32(9000)
 			extid := "ssp" + adid
 			//mutex.Lock()
-			bodyMap.Put(dealid,bodyContent{adid, bodycontent.(bodyContent).cnt + 1})
+			//bodyMap[dealid] = bodyContent{adid, bodycontent.cnt + 1}
 			//mutex.Unlock()
 			err = proto.Unmarshal(b, newRequest)
 			newResponse := &pb_tencent.Response{}
@@ -258,4 +261,3 @@ func main() {
 
 	startServer()
 }
-
