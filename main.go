@@ -240,6 +240,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Body = body
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	proxy.Transport = &transport{http.DefaultTransport}
+	log.Printf("\n\n++++++++++++++++++++++++++++++++++++++++++++++++Test++++++++++++++++++++++++++++++++++++++++++++++++++\n\n")
 	proxy.ServeHTTP(w, r)
 
 }
