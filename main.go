@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	pb_tencent "tencent"
 
 	concurrentMap "github.com/fanliao/go-concurrentMap"
@@ -52,7 +51,7 @@ var bodyMap = concurrentMap.NewConcurrentMap()
 //var bodyMap map[string]bodyContent
 var rconfig RConfig
 
-var mutex *sync.Mutex = new(sync.Mutex)
+//var mutex = new(sync.Mutex)
 
 type transport struct {
 	http.RoundTripper
@@ -127,14 +126,14 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	dealid := newRequest.Impression[0].GetDealid()
 	if len(newResponse.GetSeatbid()) > 0 && len(newResponse.GetSeatbid()[0].GetBid()) > 0 {
 		adid := newResponse.Seatbid[0].Bid[0].GetAdid()
-		mutex.Lock()
+		//mutex.Lock()
 		bodyMap.Put(dealid, bodyContent{adid, 0})
-		mutex.Unlock()
+		//mutex.Unlock()
 		*newResponse.GetSeatbid()[0].GetBid()[0].Ext = "ssp" + adid
 	} else {
-		mutex.Lock()
+		//mutex.Lock()
 		bodyMap.Put(dealid, bodyContent{"0", 1})
-		mutex.Unlock()
+		//mutex.Unlock()
 	}
 
 	fmt.Println("REQREQREQREQ\n" + newRequest.String())
@@ -180,9 +179,9 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// if  in bodyMap,return body directly
 	dealid := newRequest.Impression[0].GetDealid()
-	mutex.Lock()
+	//mutex.Lock()
 	bodycontent, ok := bodyMap.Get(dealid)
-	mutex.Unlock()
+	//mutex.Unlock()
 	if ok == nil {
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
 			id := newRequest.GetId()
