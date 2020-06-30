@@ -184,6 +184,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//mutex.Unlock()
 	if ok == nil {
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
+			log.Printf("\n\n------------------------------------------------------Test------------------------------------------------------\n\n")
 			id := newRequest.GetId()
 			bidid := newRequest.Impression[0].GetId()
 
