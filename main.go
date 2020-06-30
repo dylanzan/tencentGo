@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
+	"github.com/wxnacy/wgo/arrays"
 )
 
 type RConfig struct {
@@ -67,7 +68,7 @@ func contains(s []string, e string, isExact bool) bool {
 				return true
 			}
 		} else {
-			if strings.Contains(e, a) || strings.Contains(a, e) {
+			if a == e {
 				return true
 			}
 		}
@@ -150,6 +151,12 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
+	deals1 := rconfig.DealidList1
+	deals2 := rconfig.DealidList2
+	deals3 := rconfig.DealidList3
+	deals4 := rconfig.DealidList4
+	deals5 := rconfig.DealidList5
+
 	b, err := ioutil.ReadAll(r.Body)
 
 	//process request change
@@ -160,15 +167,15 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	addr := rconfig.DefaultUpstreamAddr
 	//if newRequest.Device.DeviceId != nil {
 
-	if contains(rconfig.DealidList1, newRequest.Impression[0].GetDealid(), false) {
+	if contains(deals1, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr1
-	} else if contains(rconfig.DealidList2, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals2, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr2
-	} else if contains(rconfig.DealidList3, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals3, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr3
-	} else if contains(rconfig.DealidList4, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals4, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr4
-	} else if contains(rconfig.DealidList5, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals5, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr5
 	}
 	//}
@@ -182,7 +189,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//mutex.Lock()
 	bodycontent, ok := bodyMap.Get(dealid)
 	//mutex.Unlock()
-	if ok == nil {
+	if ok == nil && bodycontent != nil && arrays.Contains(deals1, dealid) != -1 || arrays.Contains(deals2, dealid) != -1 || arrays.Contains(deals3, dealid) != -1 || arrays.Contains(deals4, dealid) != -1 || arrays.Contains(deals5, dealid) != -1 {
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
 			log.Printf("\n\n------------------------------------------------------Test------------------------------------------------------\n\n")
 			id := newRequest.GetId()
