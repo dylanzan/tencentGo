@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	pb_tencent "tencent"
 
 	concurrentMap "github.com/fanliao/go-concurrentMap"
@@ -51,7 +52,7 @@ var bodyMap = concurrentMap.NewConcurrentMap()
 //var bodyMap map[string]bodyContent
 var rconfig RConfig
 
-//var mutex *sync.Mutex = new(sync.Mutex)
+var mutex *sync.Mutex = new(sync.Mutex)
 
 type transport struct {
 	http.RoundTripper
@@ -61,6 +62,7 @@ var _ http.RoundTripper = &transport{}
 
 func contains(s []string, e string, isExact bool) bool {
 	for _, a := range s {
+		a = strings.TrimSpace(a)
 		if isExact {
 			if a == e {
 				return true
@@ -122,17 +124,17 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	newResponse := &pb_tencent.Response{}
 
 	err = proto.Unmarshal(b, newResponse)
-	dealid := *(newRequest.Impression[0].Dealid)
-	if len(newResponse.Seatbid) > 0 && len(newResponse.Seatbid[0].Bid) > 0 {
-		adid := *(newResponse.Seatbid[0].Bid[0].Adid)
-		//mutex.Lock()
+	dealid := newRequest.Impression[0].GetDealid()
+	if len(newResponse.GetSeatbid()) > 0 && len(newResponse.GetSeatbid()[0].GetBid()) > 0 {
+		adid := newResponse.Seatbid[0].Bid[0].GetAdid()
+		mutex.Lock()
 		bodyMap.Put(dealid, bodyContent{adid, 0})
-		//mutex.Unlock()
-		*newResponse.Seatbid[0].Bid[0].Ext = "ssp" + adid
+		mutex.Unlock()
+		*newResponse.GetSeatbid()[0].GetBid()[0].Ext = "ssp" + adid
 	} else {
-		//mutex.Lock()
+		mutex.Lock()
 		bodyMap.Put(dealid, bodyContent{"0", 1})
-		//mutex.Unlock()
+		mutex.Unlock()
 	}
 
 	fmt.Println("REQREQREQREQ\n" + newRequest.String())
@@ -159,32 +161,32 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	addr := rconfig.DefaultUpstreamAddr
 	//if newRequest.Device.DeviceId != nil {
 
-	if contains(rconfig.DealidList1, *(newRequest.Impression[0].Dealid), false) {
+	if contains(rconfig.DealidList1, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr1
-	} else if contains(rconfig.DealidList2, *(newRequest.Impression[0].Dealid), false) {
+	} else if contains(rconfig.DealidList2, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr2
-	} else if contains(rconfig.DealidList3, *(newRequest.Impression[0].Dealid), false) {
+	} else if contains(rconfig.DealidList3, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr3
-	} else if contains(rconfig.DealidList4, *(newRequest.Impression[0].Dealid), false) {
+	} else if contains(rconfig.DealidList4, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr4
-	} else if contains(rconfig.DealidList5, *(newRequest.Impression[0].Dealid), false) {
+	} else if contains(rconfig.DealidList5, newRequest.Impression[0].GetDealid(), false) {
 		addr = rconfig.UpstreamAddr5
 	}
 	//}
-	fmt.Println(*(newRequest.Impression[0].Dealid) + " ==>" + addr)
+	fmt.Println(newRequest.Impression[0].GetDealid() + " ==>" + addr)
 	remote, err := url.Parse("http://" + addr)
 	if err != nil {
 		panic(err)
 	}
 	// if  in bodyMap,return body directly
-	dealid := *(newRequest.Impression[0].Dealid)
-	//mutex.Lock()
+	dealid := newRequest.Impression[0].GetDealid()
+	mutex.Lock()
 	bodycontent, ok := bodyMap.Get(dealid)
-	//mutex.Unlock()
+	mutex.Unlock()
 	if ok == nil {
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
-			id := *newRequest.Id
-			bidid := *(newRequest.Impression[0].Id)
+			id := newRequest.GetId()
+			bidid := newRequest.Impression[0].GetId()
 
 			adid := bodycontent.(bodyContent).body
 			price := float32(9000)
