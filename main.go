@@ -282,12 +282,10 @@ func main() {
 	deals4 = rconfig.DealidList4
 	deals5 = rconfig.DealidList5
 
-	func() {
-		deals6 = append(deals1, deals2...)
-		deals6 = append(deals6, deals3...)
-		deals6 = append(deals6, deals4...)
-		deals6 = append(deals6, deals5...)
-	}()
+	deals6 = append(deals1, deals2...)
+	deals6 = append(deals6, deals3...)
+	deals6 = append(deals6, deals4...)
+	deals6 = append(deals6, deals5...)
 
 	fmt.Println(rconfig)
 
