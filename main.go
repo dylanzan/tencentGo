@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	pb_tencent "tencent"
+	"time"
 
 	concurrentMap "github.com/fanliao/go-concurrentMap"
 
@@ -46,11 +47,20 @@ type bodyContent struct {
 	cnt  int
 }
 
-//使用分段map，将锁结构细粒化
-var bodyMap = concurrentMap.NewConcurrentMap()
+var (
+	//使用分段map，细化锁结构
+	bodyMap = concurrentMap.NewConcurrentMap()
+
+	deals1 []string
+	deals2 []string
+	deals3 []string
+	deals4 []string
+	deals5 []string
+
+	rconfig RConfig
+)
 
 //var bodyMap map[string]bodyContent
-var rconfig RConfig
 
 //var mutex = new(sync.Mutex)
 
@@ -151,12 +161,6 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	deals1 := rconfig.DealidList1
-	deals2 := rconfig.DealidList2
-	deals3 := rconfig.DealidList3
-	deals4 := rconfig.DealidList4
-	deals5 := rconfig.DealidList5
-
 	b, err := ioutil.ReadAll(r.Body)
 
 	//process request change
@@ -188,8 +192,14 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dealid := newRequest.Impression[0].GetDealid()
 	//mutex.Lock()
 	bodycontent, ok := bodyMap.Get(dealid)
+
+	if bodycontent == nil {
+		return
+	}
+
 	//mutex.Unlock()
-	if ok == nil && bodycontent != nil && arrays.Contains(deals1, dealid) != -1 || arrays.Contains(deals2, dealid) != -1 || arrays.Contains(deals3, dealid) != -1 || arrays.Contains(deals4, dealid) != -1 || arrays.Contains(deals5, dealid) != -1 {
+	if ok == nil && arrays.Contains(deals1, dealid) != -1 || arrays.Contains(deals2, dealid) != -1 || arrays.Contains(deals3, dealid) != -1 || arrays.Contains(deals4, dealid) != -1 || arrays.Contains(deals5, dealid) != -1 {
+		rand.Seed(time.Now().UnixNano())
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
 			log.Printf("\n\n------------------------------------------------------Test------------------------------------------------------\n\n")
 			id := newRequest.GetId()
@@ -240,7 +250,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Body = body
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	proxy.Transport = &transport{http.DefaultTransport}
-	log.Printf("\n\n++++++++++++++++++++++++++++++++++++++++++++++++Test++++++++++++++++++++++++++++++++++++++++++++++++++\n\n")
+	log.Printf("\n\n++++++++++++++++++++++++++++++++++++++++++++++++   Test   ++++++++++++++++++++++++++++++++++++++++++++++++++\n\n")
 	proxy.ServeHTTP(w, r)
 
 }
@@ -258,6 +268,12 @@ func main() {
 
 	//检测超过100ms的锁
 	//syncT.Opts.DeadlockTimeout = time.Millisecond * 100
+
+	deals1 = rconfig.DealidList1
+	deals2 = rconfig.DealidList2
+	deals3 = rconfig.DealidList3
+	deals4 = rconfig.DealidList4
+	deals5 = rconfig.DealidList5
 
 	viper.SetConfigName("tencentconfig")
 	viper.AddConfigPath(".")
