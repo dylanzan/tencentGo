@@ -195,13 +195,12 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	bodycontent, ok := bodyMap.Get(dealid)
 
 	//mutex.Unlock()
-	if ok == nil && arrays.Contains(deals6, dealid) != -1 {
+	if ok == nil && arrays.Contains(deals6, dealid) != -1 && bodycontent != nil {
 		rand.Seed(time.Now().UnixNano())
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
 			log.Printf("\n\n------------------------------------------------------Test------------------------------------------------------\n\n")
 			id := newRequest.GetId()
 			bidid := newRequest.Impression[0].GetId()
-
 			adid := bodycontent.(bodyContent).body
 			price := float32(9000)
 			extid := "ssp" + adid
