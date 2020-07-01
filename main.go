@@ -202,7 +202,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			id := newRequest.GetId()
 			bidid := newRequest.Impression[0].GetId()
 
-			adid := bodycontent.(*bodyContent).body
+			adid := bodycontent.(bodyContent).body
 			price := float32(9000)
 			extid := "ssp" + adid
 
