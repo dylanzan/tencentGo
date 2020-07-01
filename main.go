@@ -51,12 +51,13 @@ var (
 	//使用分段map，细化锁结构
 	bodyMap = concurrentMap.NewConcurrentMap()
 
-	deals1  []string
-	deals2  []string
-	deals3  []string
-	deals4  []string
-	deals5  []string
-	deals6  []string
+	deals1 []string
+	deals2 []string
+	deals3 []string
+	deals4 []string
+	deals5 []string
+	deals6 []string
+
 	rconfig RConfig
 )
 
@@ -193,10 +194,6 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//mutex.Lock()
 	bodycontent, ok := bodyMap.Get(dealid)
 
-	if bodycontent == nil {
-		return
-	}
-
 	//mutex.Unlock()
 	if ok == nil && arrays.Contains(deals6, dealid) != -1 {
 		rand.Seed(time.Now().UnixNano())
@@ -205,9 +202,10 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			id := newRequest.GetId()
 			bidid := newRequest.Impression[0].GetId()
 
-			adid := bodycontent.(bodyContent).body
+			adid := bodycontent.(*bodyContent).body
 			price := float32(9000)
 			extid := "ssp" + adid
+
 			//mutex.Lock()
 			//bodyMap[dealid] = bodyContent{adid, bodycontent.cnt + 1}
 			//mutex.Unlock()
