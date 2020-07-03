@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	pb_tencent "tencent"
+	"time"
 )
 
 type RConfig struct {
@@ -160,6 +161,10 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
+	//ctx,cancel :=context.WithTimeout(context.Background(),45*time.Second)
+
+	//defer cancel()
+
 	b, err := ioutil.ReadAll(r.Body)
 
 	//process request change
@@ -254,7 +259,16 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func startServer() {
 	//被代理的服务器host和port
 	h := &handle{}
-	err := http.ListenAndServe(":"+rconfig.ListenPort, h)
+
+	srv := http.Server{
+		ReadTimeout:  45 * time.Second,
+		WriteTimeout: 45 * time.Second,
+		Addr:         ":" + rconfig.ListenPort,
+		Handler:      h,
+	}
+
+	//err := http.ListenAndServe(":"+rconfig.ListenPort, h)
+	err := srv.ListenAndServe()
 	if err != nil {
 		log.Fatalln("ListenAndServe: ", err)
 	}
