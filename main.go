@@ -204,7 +204,6 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			adid := bodycontent.(bodyContent).body
 			price := float32(9000)
 			extid := "ssp" + adid
-
 			//mutex.Lock()
 			//bodyMap[dealid] = bodyContent{adid, bodycontent.cnt + 1}
 			//mutex.Unlock()
@@ -248,7 +247,6 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Body = body
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	proxy.Transport = &transport{http.DefaultTransport}
-	log.Printf("++++d\n")
 	proxy.ServeHTTP(w, r)
 
 }
