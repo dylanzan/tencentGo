@@ -11,4 +11,4 @@ require (
 	tencent v0.0.0
 )
 
-replace tencent => ./tencent
+replace tencent => ./src/model/tencent

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	concurrentMap "github.com/fanliao/go-concurrentMap"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -13,8 +14,6 @@ import (
 	"strings"
 	pb_tencent "tencent"
 	"time"
-
-	concurrentMap "github.com/fanliao/go-concurrentMap"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
@@ -79,7 +78,7 @@ func contains(s []string, e string, isExact bool) bool {
 				return true
 			}
 		} else {
-			if a == e {
+			if strings.Contains(a, e) || strings.Contains(e, a) {
 				return true
 			}
 		}
@@ -172,15 +171,17 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	addr := rconfig.DefaultUpstreamAddr
 	//if newRequest.Device.DeviceId != nil {
 
-	if contains(deals1, newRequest.Impression[0].GetDealid(), false) {
+	newRequestDealId := newRequest.Impression[0].GetDealid()
+
+	if contains(deals1, newRequestDealId, false) {
 		addr = rconfig.UpstreamAddr1
-	} else if contains(deals2, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals2, newRequestDealId, false) {
 		addr = rconfig.UpstreamAddr2
-	} else if contains(deals3, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals3, newRequestDealId, false) {
 		addr = rconfig.UpstreamAddr3
-	} else if contains(deals4, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals4, newRequestDealId, false) {
 		addr = rconfig.UpstreamAddr4
-	} else if contains(deals5, newRequest.Impression[0].GetDealid(), false) {
+	} else if contains(deals5, newRequestDealId, false) {
 		addr = rconfig.UpstreamAddr5
 	}
 	//}
@@ -193,12 +194,12 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dealid := newRequest.Impression[0].GetDealid()
 	//mutex.Lock()
 	bodycontent, ok := bodyMap.Get(dealid)
-
 	//mutex.Unlock()
+
 	if ok == nil && arrays.Contains(deals6, dealid) != -1 && bodycontent != nil {
 		rand.Seed(time.Now().UnixNano())
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
-			log.Printf("\n\n------------------------------------------------------Test------------------------------------------------------\n\n")
+			//log.Printf("\n")
 			id := newRequest.GetId()
 			bidid := newRequest.Impression[0].GetId()
 			adid := bodycontent.(bodyContent).body
@@ -248,7 +249,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Body = body
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 	proxy.Transport = &transport{http.DefaultTransport}
-	log.Printf("\n\n++++++++++++++++++++++++++++++++++++++++++++++++   Test   ++++++++++++++++++++++++++++++++++++++++++++++++++\n\n")
+	log.Printf("++++d\n")
 	proxy.ServeHTTP(w, r)
 
 }
