@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	concurrentMap "github.com/fanliao/go-concurrentMap"
+	"github.com/golang/protobuf/proto"
+	"github.com/spf13/viper"
+	"github.com/wxnacy/wgo/arrays"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -12,12 +14,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	pb_tencent "tencent"
-	"time"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/spf13/viper"
-	"github.com/wxnacy/wgo/arrays"
 )
 
 type RConfig struct {
@@ -48,14 +46,15 @@ type bodyContent struct {
 
 var (
 	//使用分段map，细化锁结构
-	bodyMap = concurrentMap.NewConcurrentMap()
+	//bodyMap = concurrentMap.NewConcurrentMap()
+	bodyMap = &sync.Map{}
 
 	deals1 []string
 	deals2 []string
 	deals3 []string
 	deals4 []string
 	deals5 []string
-	deals6 []string
+	deals6 []string //将所有的dealId
 
 	rconfig RConfig
 )
@@ -138,12 +137,12 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if len(newResponse.GetSeatbid()) > 0 && len(newResponse.GetSeatbid()[0].GetBid()) > 0 {
 		adid := newResponse.Seatbid[0].Bid[0].GetAdid()
 		//mutex.Lock()
-		bodyMap.Put(dealid, bodyContent{adid, 0})
+		bodyMap.Store(dealid, bodyContent{adid, 0})
 		//mutex.Unlock()
 		*newResponse.GetSeatbid()[0].GetBid()[0].Ext = "ssp" + adid
 	} else {
 		//mutex.Lock()
-		bodyMap.Put(dealid, bodyContent{"0", 1})
+		bodyMap.Store(dealid, bodyContent{"0", 1})
 		//mutex.Unlock()
 	}
 
@@ -193,11 +192,11 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// if  in bodyMap,return body directly
 	dealid := newRequest.Impression[0].GetDealid()
 	//mutex.Lock()
-	bodycontent, ok := bodyMap.Get(dealid)
+	bodycontent, ok := bodyMap.Load(dealid)
 	//mutex.Unlock()
 
-	if ok == nil && arrays.Contains(deals6, dealid) != -1 && bodycontent != nil {
-		rand.Seed(time.Now().UnixNano())
+	if ok && arrays.Contains(deals6, dealid) != -1 && bodycontent != nil {
+		//rand.Seed(time.Now().UnixNano())
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
 			//log.Printf("\n")
 			id := newRequest.GetId()
