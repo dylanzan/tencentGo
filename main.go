@@ -184,7 +184,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		addr = rconfig.UpstreamAddr5
 	}
 	//}
-	fmt.Println(newRequest.Impression[0].GetDealid() + " ==>" + addr)
+
 	remote, err := url.Parse("http://" + addr)
 	if err != nil {
 		panic(err)
@@ -198,7 +198,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if ok && arrays.Contains(deals6, dealid) != -1 && bodycontent != nil {
 		//rand.Seed(time.Now().UnixNano())
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
-			//log.Printf("\n")
+			fmt.Println(newRequestDealId + " ==>" + addr)
 			id := newRequest.GetId()
 			bidid := newRequest.Impression[0].GetId()
 			adid := bodycontent.(bodyContent).body
