@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-type RConfig struct {
+/*type RConfig struct {
 	UpstreamAddr1       string
 	DealidList1         []string
 	UpstreamAddr2       string
@@ -34,6 +34,18 @@ type RConfig struct {
 	ListenPort          string
 	TimesBackToSource   int
 	NoExt               int
+}*/
+type RConfig struct {
+	UpstreamAddrs       []string
+	DefaultUpstreamAddr string
+	ListenPort          string
+	TimesBackToSource   int
+	NoExt               int
+}
+
+type upStreamStruct struct {
+	ipAddr string
+	deals  []string
 }
 
 type handle struct {
@@ -49,6 +61,12 @@ var (
 	//使用分段map，细化锁结构
 	//bodyMap = concurrentMap.NewConcurrentMap()
 	bodyMap = &sync.Map{}
+	//UpStreamMap=make(map[string]upStreamStruct)
+
+	u1 upStreamStruct
+	u2 upStreamStruct
+	u3 upStreamStruct
+	u4 upStreamStruct
 
 	deals1 []string
 	deals2 []string
@@ -161,10 +179,6 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	//ctx,cancel :=context.WithTimeout(context.Background(),45*time.Second)
-
-	//defer cancel()
-
 	b, err := ioutil.ReadAll(r.Body)
 
 	//process request change
@@ -178,16 +192,16 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	newRequestDealId := newRequest.Impression[0].GetDealid()
 
 	if contains(deals1, newRequestDealId, false) {
-		addr = rconfig.UpstreamAddr1
+		addr = u1.ipAddr
 	} else if contains(deals2, newRequestDealId, false) {
-		addr = rconfig.UpstreamAddr2
+		addr = u2.ipAddr
 	} else if contains(deals3, newRequestDealId, false) {
-		addr = rconfig.UpstreamAddr3
+		addr = u3.ipAddr
 	} else if contains(deals4, newRequestDealId, false) {
-		addr = rconfig.UpstreamAddr4
-	} else if contains(deals5, newRequestDealId, false) {
+		addr = u4.ipAddr
+	} /*else if contains(deals5, newRequestDealId, false) {
 		addr = rconfig.UpstreamAddr5
-	}
+	}*/
 	//}
 
 	remote, err := url.Parse("http://" + addr)
@@ -261,8 +275,8 @@ func startServer() {
 	h := &handle{}
 
 	srv := http.Server{
-		ReadTimeout:  45 * time.Second,
-		WriteTimeout: 45 * time.Second,
+		ReadTimeout:  20 * time.Second, //超时控制
+		WriteTimeout: 20 * time.Second,
 		Addr:         ":" + rconfig.ListenPort,
 		Handler:      h,
 	}
@@ -286,18 +300,43 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-	viper.Unmarshal(&rconfig)
 
-	deals1 = rconfig.DealidList1
-	deals2 = rconfig.DealidList2
-	deals3 = rconfig.DealidList3
-	deals4 = rconfig.DealidList4
-	deals5 = rconfig.DealidList5
+	err = viper.Unmarshal(&rconfig)
+	if err != nil {
+		panic(err)
+	}
 
-	deals6 = append(deals1, deals2...)
-	deals6 = append(deals6, deals3...)
-	deals6 = append(deals6, deals4...)
-	deals6 = append(deals6, deals5...)
+	if len(rconfig.UpstreamAddrs) != 0 {
+		for _, v := range rconfig.UpstreamAddrs {
+
+			upStream := strings.Split(v, "|")
+			//golang map 遍历输出无序的，所以加入id
+			id := upStream[0]
+			usSplit := strings.Split(upStream[1], ",")
+			deals := usSplit[1:]
+			uss := &upStreamStruct{
+				ipAddr: usSplit[0],
+				deals:  deals,
+			}
+			switch id {
+			case "1":
+				u1 = *uss
+				deals1 = u1.deals
+			case "2":
+				u2 = *uss
+				deals2 = u2.deals
+			case "3":
+				u3 = *uss
+				deals3 = u3.deals
+			case "4":
+				deals4 = u4.deals
+				u4 = *uss
+			}
+
+			deals6 = append(deals6, deals...)
+
+		}
+	}
 
 	fmt.Println(rconfig)
 
