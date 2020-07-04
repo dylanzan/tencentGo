@@ -19,22 +19,6 @@ import (
 	"time"
 )
 
-/*type RConfig struct {
-	UpstreamAddr1       string
-	DealidList1         []string
-	UpstreamAddr2       string
-	DealidList2         []string
-	UpstreamAddr3       string
-	DealidList3         []string
-	UpstreamAddr4       string
-	DealidList4         []string
-	UpstreamAddr5       string
-	DealidList5         []string
-	DefaultUpstreamAddr string
-	ListenPort          string
-	TimesBackToSource   int
-	NoExt               int
-}*/
 type RConfig struct {
 	UpstreamAddrs       []string
 	DefaultUpstreamAddr string
@@ -58,10 +42,7 @@ type bodyContent struct {
 }
 
 var (
-	//使用分段map，细化锁结构
-	//bodyMap = concurrentMap.NewConcurrentMap()
 	bodyMap = &sync.Map{}
-	//UpStreamMap=make(map[string]upStreamStruct)
 
 	u1 upStreamStruct
 	u2 upStreamStruct
