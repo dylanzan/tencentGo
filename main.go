@@ -49,12 +49,13 @@ var (
 	u3 upStreamStruct
 	u4 upStreamStruct
 
-	deals1 []string
-	deals2 []string
-	deals3 []string
-	deals4 []string
-	deals5 []string
-	deals6 []string //将所有的dealId
+	//deal 列表
+	deals1   []string
+	deals2   []string
+	deals3   []string
+	deals4   []string
+	deals5   []string
+	allDeals []string //将所有的dealId
 
 	rconfig RConfig
 )
@@ -195,7 +196,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	bodycontent, ok := bodyMap.Load(dealid)
 	//mutex.Unlock()
 
-	if ok && arrays.Contains(deals6, dealid) != -1 && bodycontent != nil {
+	if ok && arrays.Contains(allDeals, dealid) != -1 && bodycontent != nil {
 		//rand.Seed(time.Now().UnixNano())
 		if rand.Intn(rconfig.TimesBackToSource) > 1 {
 			fmt.Println(newRequestDealId + " ==>" + addr)
@@ -314,7 +315,7 @@ func main() {
 				u4 = *uss
 			}
 
-			deals6 = append(deals6, deals...)
+			allDeals = append(allDeals, deals...)
 
 		}
 	}
