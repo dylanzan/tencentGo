@@ -165,6 +165,10 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	b, err := ioutil.ReadAll(r.Body)
 
+	if err != nil {
+		log.Printf("read all err is %v", err)
+	}
+
 	//process request change
 	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
 	newRequest := &pb_tencent.Request{}
@@ -173,93 +177,96 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	addr := rconfig.DefaultUpstreamAddr
 	//if newRequest.Device.DeviceId != nil {
 
-	newRequestDealId := newRequest.Impression[0].GetDealid()
+	var newRequestDealId string
+	if len(newRequest.Impression) > 0 {
+		newRequestDealId = newRequest.Impression[0].GetDealid()
 
-	if configMap == nil {
-		panic("config map is nil")
-	}
-	for _, v := range configMap {
-		if contains(v.deals, newRequestDealId, false) {
-			addr = v.ipAddr
+		if configMap == nil {
+			panic("config map is nil")
 		}
-	}
+		for _, v := range configMap {
+			if contains(v.deals, newRequestDealId, false) {
+				addr = v.ipAddr
+			}
+		}
 
-	/*if contains(deals1, newRequestDealId, false) {
-		addr = u1.ipAddr
-	} else if contains(deals2, newRequestDealId, false) {
-		addr = u2.ipAddr
-	} else if contains(deals3, newRequestDealId, false) {
-		addr = u3.ipAddr
-	} else if contains(deals4, newRequestDealId, false) {
-		addr = u4.ipAddr
-	} else if contains(deals5, newRequestDealId, false) {
-		addr = u5.ipAddr
-	}*/
-	//}
+		/*if contains(deals1, newRequestDealId, false) {
+			addr = u1.ipAddr
+		} else if contains(deals2, newRequestDealId, false) {
+			addr = u2.ipAddr
+		} else if contains(deals3, newRequestDealId, false) {
+			addr = u3.ipAddr
+		} else if contains(deals4, newRequestDealId, false) {
+			addr = u4.ipAddr
+		} else if contains(deals5, newRequestDealId, false) {
+			addr = u5.ipAddr
+		}*/
+		//}
 
-	remote, err := url.Parse("http://" + addr)
-	if err != nil {
-		panic(err)
-	}
-	// if  in bodyMap,return body directly
-	dealid := newRequest.Impression[0].GetDealid()
-	//mutex.Lock()
-	bodycontent, ok := bodyMap.Load(dealid)
-	//mutex.Unlock()
+		remote, err := url.Parse("http://" + addr)
+		if err != nil {
+			panic(err)
+		}
+		// if  in bodyMap,return body directly
+		//	dealid := newRequest.Impression[0].GetDealid()
+		//mutex.Lock()
+		bodycontent, ok := bodyMap.Load(newRequestDealId)
+		//mutex.Unlock()
 
-	if ok && arrays.Contains(allDeals, dealid) != -1 && bodycontent != nil {
-		//rand.Seed(time.Now().UnixNano())
-		if rand.Intn(rconfig.TimesBackToSource) > 1 {
-			fmt.Println(newRequestDealId + " ==>" + addr)
-			id := newRequest.GetId()
-			bidid := newRequest.Impression[0].GetId()
-			adid := bodycontent.(bodyContent).body
-			price := float32(9000)
-			extid := "ssp" + adid
-			//mutex.Lock()
-			//bodyMap[dealid] = bodyContent{adid, bodycontent.cnt + 1}
-			//mutex.Unlock()
-			err = proto.Unmarshal(b, newRequest)
-			newResponse := &pb_tencent.Response{}
-			if adid != "0" {
-				newResponse = &pb_tencent.Response{
-					Id: &id,
-					Seatbid: []*pb_tencent.Response_SeatBid{
-						{
-							Bid: []*pb_tencent.Response_Bid{
-								{Id: &bidid,
-									Impid: &bidid,
-									Price: &price,
-									Adid:  &adid,
-									Ext:   &extid},
+		if ok && arrays.Contains(allDeals, newRequestDealId) != -1 && bodycontent != nil {
+			//rand.Seed(time.Now().UnixNano())
+			if rand.Intn(rconfig.TimesBackToSource) > 1 {
+				fmt.Println(newRequestDealId + " ==>" + addr)
+				id := newRequest.GetId()
+				bidid := newRequest.Impression[0].GetId()
+				adid := bodycontent.(bodyContent).body
+				price := float32(9000)
+				extid := "ssp" + adid
+				//mutex.Lock()
+				//bodyMap[dealid] = bodyContent{adid, bodycontent.cnt + 1}
+				//mutex.Unlock()
+				err = proto.Unmarshal(b, newRequest)
+				newResponse := &pb_tencent.Response{}
+				if adid != "0" {
+					newResponse = &pb_tencent.Response{
+						Id: &id,
+						Seatbid: []*pb_tencent.Response_SeatBid{
+							{
+								Bid: []*pb_tencent.Response_Bid{
+									{Id: &bidid,
+										Impid: &bidid,
+										Price: &price,
+										Adid:  &adid,
+										Ext:   &extid},
+								},
 							},
 						},
-					},
+					}
+				} else {
+					newResponse = &pb_tencent.Response{
+						Id: &id,
+					}
 				}
-			} else {
-				newResponse = &pb_tencent.Response{
-					Id: &id,
+				data, err := proto.Marshal(newResponse) //TODO: if no changed, just send original pb to http
+				if err != nil {
+					w.WriteHeader(204)
 				}
-			}
-			data, err := proto.Marshal(newResponse) //TODO: if no changed, just send original pb to http
-			if err != nil {
-				w.WriteHeader(204)
-			}
-			//bodyMap[*(newRequest.Impression[0].Dealid)] = bodyContent{bodycontent.body, bodycontent.cnt + 1}
-			w.Write(data)
+				//bodyMap[*(newRequest.Impression[0].Dealid)] = bodyContent{bodycontent.body, bodycontent.cnt + 1}
+				w.Write(data)
 
-			fmt.Println("REQREQREQREQ\n" + newRequest.String())
-			fmt.Println("RESPRESPRESPRESP\n" + newResponse.String())
-			return
+				fmt.Println("REQREQREQREQ\n" + newRequest.String())
+				fmt.Println("RESPRESPRESPRESP\n" + newResponse.String())
+				return
+			}
 		}
-	}
 
-	//if not in bodyMap, reverseProxy and transpot RoundTrip,
-	body := ioutil.NopCloser(bytes.NewReader(b))
-	r.Body = body
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.Transport = &transport{http.DefaultTransport}
-	proxy.ServeHTTP(w, r)
+		//if not in bodyMap, reverseProxy and transpot RoundTrip,
+		body := ioutil.NopCloser(bytes.NewReader(b))
+		r.Body = body
+		proxy := httputil.NewSingleHostReverseProxy(remote)
+		proxy.Transport = &transport{http.DefaultTransport}
+		proxy.ServeHTTP(w, r)
+	}
 
 }
 
@@ -330,14 +337,23 @@ func main() {
 				deals5 = u5.deals
 				u5 = *uss
 			}*/
-			for _, v := range configMap {
-				allDeals = append(allDeals, v.deals...)
+			for _, cV := range configMap {
+				if len(allDeals) > 0 {
+					for _, dv := range cV.deals {
+						if arrays.Contains(allDeals, dv) == -1 {
+							allDeals = append(allDeals, dv)
+						}
+					}
+				} else {
+					allDeals = append(allDeals, cV.deals...)
+				}
 			}
 		}
 	}
 
 	fmt.Println(rconfig)
 	fmt.Println(configMap)
+	fmt.Println(allDeals)
 
 	startServer()
 }
