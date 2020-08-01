@@ -43,18 +43,20 @@ type bodyContent struct {
 var (
 	bodyMap = &sync.Map{}
 
-	u1 upStreamStruct
+	configMap map[string]upStreamStruct
+
+	/*u1 upStreamStruct
 	u2 upStreamStruct
 	u3 upStreamStruct
 	u4 upStreamStruct
-	u5 upStreamStruct
+	u5 upStreamStruct*/
 
 	//deal 列表
-	deals1   []string
+	/*deals1   []string
 	deals2   []string
 	deals3   []string
 	deals4   []string
-	deals5   []string
+	deals5   []string*/
 	allDeals []string //将所有的dealId
 
 	rconfig RConfig
@@ -173,7 +175,16 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	newRequestDealId := newRequest.Impression[0].GetDealid()
 
-	if contains(deals1, newRequestDealId, false) {
+	if configMap == nil {
+		panic("config map is nil")
+	}
+	for _, v := range configMap {
+		if contains(v.deals, newRequestDealId, false) {
+			addr = v.ipAddr
+		}
+	}
+
+	/*if contains(deals1, newRequestDealId, false) {
 		addr = u1.ipAddr
 	} else if contains(deals2, newRequestDealId, false) {
 		addr = u2.ipAddr
@@ -183,7 +194,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		addr = u4.ipAddr
 	} else if contains(deals5, newRequestDealId, false) {
 		addr = u5.ipAddr
-	}
+	}*/
 	//}
 
 	remote, err := url.Parse("http://" + addr)
@@ -272,6 +283,8 @@ func startServer() {
 
 func main() {
 
+	configMap = make(map[string]upStreamStruct)
+
 	viper.SetConfigName("tencentconfig")
 	viper.AddConfigPath(".")
 	//bodyMap = make(map[string]bodyContent)
@@ -297,7 +310,10 @@ func main() {
 				ipAddr: usSplit[0],
 				deals:  deals,
 			}
-			switch id {
+
+			configMap[id] = *uss
+
+			/*switch id {
 			case "1":
 				u1 = *uss
 				deals1 = u1.deals
@@ -313,14 +329,15 @@ func main() {
 			case "5":
 				deals5 = u5.deals
 				u5 = *uss
+			}*/
+			for _, v := range configMap {
+				allDeals = append(allDeals, v.deals...)
 			}
-
-			allDeals = append(allDeals, deals...)
-
 		}
 	}
 
 	fmt.Println(rconfig)
+	fmt.Println(configMap)
 
 	startServer()
 }
