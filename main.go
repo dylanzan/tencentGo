@@ -45,18 +45,6 @@ var (
 
 	configMap map[string]upStreamStruct
 
-	/*u1 upStreamStruct
-	u2 upStreamStruct
-	u3 upStreamStruct
-	u4 upStreamStruct
-	u5 upStreamStruct*/
-
-	//deal 列表
-	/*deals1   []string
-	deals2   []string
-	deals3   []string
-	deals4   []string
-	deals5   []string*/
 	allDeals []string //将所有的dealId
 
 	rconfig RConfig
@@ -190,19 +178,6 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		/*if contains(deals1, newRequestDealId, false) {
-			addr = u1.ipAddr
-		} else if contains(deals2, newRequestDealId, false) {
-			addr = u2.ipAddr
-		} else if contains(deals3, newRequestDealId, false) {
-			addr = u3.ipAddr
-		} else if contains(deals4, newRequestDealId, false) {
-			addr = u4.ipAddr
-		} else if contains(deals5, newRequestDealId, false) {
-			addr = u5.ipAddr
-		}*/
-		//}
-
 		remote, err := url.Parse("http://" + addr)
 		if err != nil {
 			panic(err)
@@ -275,14 +250,13 @@ func startServer() {
 	h := &handle{}
 
 	srv := http.Server{
-		//ReadTimeout:  20 * time.Second, //超时控制
-		//WriteTimeout: 20 * time.Second,
 		Addr:    ":" + rconfig.ListenPort,
 		Handler: h,
 	}
 
-	//err := http.ListenAndServe(":"+rconfig.ListenPort, h)
+	fmt.Println(srv.Addr)
 	err := srv.ListenAndServe()
+
 	if err != nil {
 		log.Fatalln("ListenAndServe: ", err)
 	}
@@ -320,23 +294,6 @@ func main() {
 
 			configMap[id] = *uss
 
-			/*switch id {
-			case "1":
-				u1 = *uss
-				deals1 = u1.deals
-			case "2":
-				u2 = *uss
-				deals2 = u2.deals
-			case "3":
-				u3 = *uss
-				deals3 = u3.deals
-			case "4":
-				deals4 = u4.deals
-				u4 = *uss
-			case "5":
-				deals5 = u5.deals
-				u5 = *uss
-			}*/
 			for _, cV := range configMap {
 				if len(allDeals) > 0 {
 					for _, dv := range cV.deals {
@@ -352,7 +309,6 @@ func main() {
 	}
 
 	fmt.Println(rconfig)
-	fmt.Println(configMap)
 	fmt.Println(allDeals)
 
 	startServer()
