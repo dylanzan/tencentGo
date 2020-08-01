@@ -16,7 +16,6 @@ import (
 	"strings"
 	"sync"
 	pb_tencent "tencent"
-	"time"
 )
 
 type RConfig struct {
@@ -48,6 +47,7 @@ var (
 	u2 upStreamStruct
 	u3 upStreamStruct
 	u4 upStreamStruct
+	u5 upStreamStruct
 
 	//deal 列表
 	deals1   []string
@@ -181,9 +181,9 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		addr = u3.ipAddr
 	} else if contains(deals4, newRequestDealId, false) {
 		addr = u4.ipAddr
-	} /*else if contains(deals5, newRequestDealId, false) {
-		addr = rconfig.UpstreamAddr5
-	}*/
+	} else if contains(deals5, newRequestDealId, false) {
+		addr = u5.ipAddr
+	}
 	//}
 
 	remote, err := url.Parse("http://" + addr)
@@ -257,10 +257,10 @@ func startServer() {
 	h := &handle{}
 
 	srv := http.Server{
-		ReadTimeout:  20 * time.Second, //超时控制
-		WriteTimeout: 20 * time.Second,
-		Addr:         ":" + rconfig.ListenPort,
-		Handler:      h,
+		//ReadTimeout:  20 * time.Second, //超时控制
+		//WriteTimeout: 20 * time.Second,
+		Addr:    ":" + rconfig.ListenPort,
+		Handler: h,
 	}
 
 	//err := http.ListenAndServe(":"+rconfig.ListenPort, h)
@@ -271,9 +271,6 @@ func startServer() {
 }
 
 func main() {
-
-	//检测超过100ms的锁
-	//syncT.Opts.DeadlockTimeout = time.Millisecond * 100
 
 	viper.SetConfigName("tencentconfig")
 	viper.AddConfigPath(".")
@@ -313,6 +310,9 @@ func main() {
 			case "4":
 				deals4 = u4.deals
 				u4 = *uss
+			case "5":
+				deals5 = u5.deals
+				u5 = *uss
 			}
 
 			allDeals = append(allDeals, deals...)
