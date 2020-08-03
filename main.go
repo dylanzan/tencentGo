@@ -44,8 +44,6 @@ var (
 
 	configMap map[string]upStreamStruct
 
-	//allDeals []string
-
 	allDealsMap map[string]bool //存放所有deals
 	rconfig     RConfig
 )
@@ -172,9 +170,12 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if configMap == nil {
 			panic("config map is nil")
 		}
-		for _, v := range configMap {
-			if contains(v.deals, newRequestDealId, false) {
-				addr = v.ipAddr
+
+		for _, conV := range configMap {
+			for _, vDs := range conV.deals {
+				if strings.Contains(vDs, newRequestDealId) || strings.Contains(newRequestDealId, vDs) {
+					addr = conV.ipAddr
+				}
 			}
 		}
 
