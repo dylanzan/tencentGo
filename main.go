@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
-	"github.com/wxnacy/wgo/arrays"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -15,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	pb_tencent "tencent"
+	pb_tencent "tencentgo/model/tencent"
 )
 
 type RConfig struct {
@@ -45,9 +44,8 @@ var (
 
 	configMap map[string]upStreamStruct
 
-	allDeals []string //将所有的dealId
-
-	rconfig RConfig
+	allDealsMap map[string]bool //存放所有deals
+	rconfig     RConfig
 )
 
 //var bodyMap map[string]bodyContent
@@ -174,9 +172,13 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if configMap == nil {
 			panic("config map is nil")
 		}
-		for _, v := range configMap {
-			if contains(v.deals, newRequestDealId, false) {
-				addr = v.ipAddr
+
+		for _, conV := range configMap {
+			for _, vDs := range conV.deals {
+				if strings.Contains(vDs, newRequestDealId) || strings.Contains(newRequestDealId, vDs) {
+					addr = conV.ipAddr
+					break
+				}
 			}
 		}
 
@@ -190,7 +192,8 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		bodycontent, ok := bodyMap.Load(newRequestDealId)
 		//mutex.Unlock()
 
-		if ok && arrays.Contains(allDeals, newRequestDealId) != -1 && bodycontent != nil {
+		_, dealOk := allDealsMap[newRequestDealId] //判断此dealId 是否在配置文件deal列表中
+		if ok && dealOk && bodycontent != nil {
 			//rand.Seed(time.Now().UnixNano())
 			if rand.Intn(rconfig.TimesBackToSource) > 1 {
 				fmt.Println(newRequestDealId + " ==>" + addr)
@@ -271,6 +274,7 @@ func startServer() {
 func main() {
 
 	configMap = make(map[string]upStreamStruct)
+	allDealsMap = make(map[string]bool)
 
 	viper.SetConfigName("tencentconfig")
 	viper.AddConfigPath(".")
@@ -301,21 +305,15 @@ func main() {
 			configMap[id] = *uss
 
 			for _, cV := range configMap {
-				if len(allDeals) > 0 {
-					for _, dv := range cV.deals {
-						if arrays.Contains(allDeals, dv) == -1 {
-							allDeals = append(allDeals, dv)
-						}
-					}
-				} else {
-					allDeals = append(allDeals, cV.deals...)
+				for _, v := range cV.deals {
+					allDealsMap[v] = true
 				}
 			}
 		}
 	}
 
 	fmt.Println(rconfig)
-	fmt.Println(allDeals)
+	fmt.Println(allDealsMap)
 
 	startServer()
 }
