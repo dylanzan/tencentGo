@@ -175,6 +175,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			for _, vDs := range conV.deals {
 				if strings.Contains(vDs, newRequestDealId) || strings.Contains(newRequestDealId, vDs) {
 					addr = conV.ipAddr
+					break
 				}
 			}
 		}
