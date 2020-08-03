@@ -137,6 +137,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		//mutex.Unlock()
 	}
 
+	//fmt.Println("roundTrip")
 	fmt.Println("REQREQREQREQ\n" + newRequest.String())
 	fmt.Println("RESPRESPRESPRESP\n" + newResponse.String())
 
@@ -161,7 +162,8 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
 	newRequest := &pb_tencent.Request{}
 	err = proto.Unmarshal(b, newRequest)
-
+	//res, _ := json.Marshal(newRequest)
+	//log.Println(string(res))
 	addr := rconfig.DefaultUpstreamAddr
 	//if newRequest.Device.DeviceId != nil {
 
@@ -208,7 +210,8 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Seatbid: []*pb_tencent.Response_SeatBid{
 							{
 								Bid: []*pb_tencent.Response_Bid{
-									{Id: &bidid,
+									{
+										Id:    &bidid,
 										Impid: &bidid,
 										Price: &price,
 										Adid:  &adid,
@@ -229,6 +232,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				//bodyMap[*(newRequest.Impression[0].Dealid)] = bodyContent{bodycontent.body, bodycontent.cnt + 1}
 				w.Write(data)
 
+				//fmt.Println("serverHttp")
 				fmt.Println("REQREQREQREQ\n" + newRequest.String())
 				fmt.Println("RESPRESPRESPRESP\n" + newResponse.String())
 				return
@@ -252,6 +256,8 @@ func startServer() {
 	srv := http.Server{
 		Addr:    ":" + rconfig.ListenPort,
 		Handler: h,
+		//ReadTimeout:  20 * time.Second,
+		//WriteTimeout: 20 * time.Second,
 	}
 
 	fmt.Println(srv.Addr)
