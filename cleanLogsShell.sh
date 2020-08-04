@@ -1,25 +1,30 @@
 #!/usr/bin bash
 
 cd /root/.pm2/logs/
-logsHour=`ls -l |awk -F "_" '{print $4}' |awk -F "." '{print $1}'`
-logsDay= `ls -al |awk -F "__" '{print $2}' |awk -F "-" '{print $3}' |awk -F "_" '{print $1}'`
 
-currentDay=`date "+%D" |awk -F "/" '{print $2}'`
-currentHour=`date "+%H"`
+currentDay=`date "+%D" |awk -F "/" '{print $2}' |awk '{print int($0)}'`
+currentHour=`date "+%H" |awk '{print int($0)}'`
 
-for i in `ls -al |awk '{print $9}' |grep tracking`
+for i in `ls -al |awk '{print $9}' |grep tencentGo`
 do
-  if [ $logsDay -le $currentDay ]
+  echo "$i"
+  logsHour=`echo "$i" |awk -F "_" '{print $4}' |awk -F "." '{print $1}' |awk '{print int($0)}'`
+  logsDay=`echo "$i" |awk -F "__" '{print $2}' |awk -F "-" '{print $3}' |awk -F "_" '{print $1}' |awk '{print int($0)}'`
+  if [ "$logsHour" -eq 0 ]
   then
-    rm -rvf i
+    continue
   fi
-  if [ $logsDay -eq $currentDay ]
+  # shellcheck disable=SC2122
+  if [ "$logsDay" -lt "$currentDay" ]
   then
-    if [ $logsHour -le $currentHour-2 ]
+    rm -rvf `echo $i`
+  fi
+  if [ "$logsDay" -eq "$currentDay" ]
+  then
+    # shellcheck disable=SC2122
+    if [ "$logsHour" -lt "$currentHour" ]
     then
-      rm -rvf i
+      rm -rvf `echo $i`
     fi
   fi
 done
-
-
