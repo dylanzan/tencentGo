@@ -128,7 +128,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		//mutex.Lock()
 		bodyMap.Store(dealid, bodyContent{adid, 0})
 		//mutex.Unlock()
-		*newResponse.GetSeatbid()[0].GetBid()[0].Ext = "ssp" + adid
+		//*newResponse.GetSeatbid()[0].GetBid()[0].Ext = "ssp" + adid
 	} else {
 		//mutex.Lock()
 		bodyMap.Store(dealid, bodyContent{"0", 1})
@@ -136,8 +136,8 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	}
 
 	//fmt.Println("roundTrip")
-	fmt.Println("REQREQREQREQ\n" + newRequest.String())
-	fmt.Println("RESPRESPRESPRESP\n" + newResponse.String())
+	fmt.Println("roundTrip REQREQREQREQ      " + newRequest.String())
+	fmt.Println("roundTrip RESPRESPRESPRESP  " + newResponse.String())
 
 	// pb object to response body and return to hhtp
 	data, err = proto.Marshal(newResponse) //TODO: if no changed, just send original pb to http
@@ -194,7 +194,6 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		_, dealOk := allDealsMap[newRequestDealId] //判断此dealId 是否在配置文件deal列表中
 		if ok && dealOk && bodycontent != nil {
-			//rand.Seed(time.Now().UnixNano())
 			if rand.Intn(rconfig.TimesBackToSource) > 1 {
 				fmt.Println(newRequestDealId + " ==>" + addr)
 				id := newRequest.GetId()
@@ -236,8 +235,8 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.Write(data)
 
 				//fmt.Println("serverHttp")
-				fmt.Println("REQREQREQREQ\n" + newRequest.String())
-				fmt.Println("RESPRESPRESPRESP\n" + newResponse.String())
+				fmt.Println("serverHttp REQREQREQREQ         " + newRequest.String())
+				fmt.Println("serverHttp RESPRESPRESPRESP     " + newResponse.String())
 				return
 			}
 		}
@@ -248,6 +247,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		proxy := httputil.NewSingleHostReverseProxy(remote)
 		proxy.Transport = &transport{http.DefaultTransport}
 		proxy.ServeHTTP(w, r)
+
 	}
 
 }
