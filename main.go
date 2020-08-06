@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	pb_tencent "tencentgo/model/tencent"
@@ -79,7 +78,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	b, err := ioutil.ReadAll(req.Body)
 
 	//process request change
-	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
+	//b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
 	newRequest := &pb_tencent.Request{}
 	err = proto.Unmarshal(b, newRequest)
 
@@ -90,7 +89,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	body := ioutil.NopCloser(bytes.NewReader(data))
 	req.Body = body
 	req.ContentLength = int64(len(data))
-	req.Header.Set("Content-Length", strconv.Itoa(len(data)))
+	//req.Header.Set("Content-Length", strconv.Itoa(len(data)))
 
 	//set back
 	//req.Body = ioutil.NopCloser(bytes.NewBuffer(b))
@@ -102,6 +101,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if err != nil {
 		return nil, err
 	}
+
 	err = req.Body.Close()
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if err != nil {
 		return nil, err
 	}
-	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
+	//b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
 	//body = ioutil.NopCloser(bytes.NewReader(b))
 	newResponse := &pb_tencent.Response{}
 
@@ -125,14 +125,11 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	dealid := newRequest.Impression[0].GetDealid()
 	if len(newResponse.GetSeatbid()) > 0 && len(newResponse.GetSeatbid()[0].GetBid()) > 0 {
 		adid := newResponse.Seatbid[0].Bid[0].GetAdid()
-		//mutex.Lock()
 		bodyMap.Store(dealid, bodyContent{adid, 0})
-		//mutex.Unlock()
-		//*newResponse.GetSeatbid()[0].GetBid()[0].Ext = "ssp" + adid
+
 	} else {
-		//mutex.Lock()
 		bodyMap.Store(dealid, bodyContent{"0", 1})
-		//mutex.Unlock()
+
 	}
 
 	//fmt.Println("roundTrip")
@@ -144,7 +141,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	body = ioutil.NopCloser(bytes.NewReader(data))
 	resp.Body = body
 	resp.ContentLength = int64(len(data))
-	resp.Header.Set("Content-Length", strconv.Itoa(len(data)))
+	//resp.Header.Set("Content-Length", strconv.Itoa(len(data)))
 	return resp, nil
 }
 
