@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	pb_tencent "tencentgo/model/tencent"
+	"time"
 )
 
 type RConfig struct {
@@ -44,8 +45,15 @@ var (
 	allDealsMap map[string]bool //存放所有deals
 	rconfig     RConfig
 
-	client = &fastHttp.Client{}
+	client = NewFastHttpClient()
 )
+
+func NewFastHttpClient() *fastHttp.Client {
+	return &fastHttp.Client{
+		MaxConnsPerHost:    1000,
+		MaxConnWaitTimeout: 30 * time.Second,
+	}
+}
 
 func FastHttpRoutrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx {
 
