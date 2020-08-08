@@ -207,7 +207,7 @@ func startServer() {
 }
 
 func main() {
-
+	proxy.SetProduction()
 	configMap = make(map[string]upStreamStruct)
 	allDealsMap = make(map[string]bool)
 
