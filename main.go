@@ -187,7 +187,7 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 		}
 
 		ctx.SetBody(b)
-		ctx.Request.SetRequestURI("http://" + addr)
+		ctx.Request.SetRequestURI("http://" + addr + "/tencent.htm")
 		ctx.Request.Header.Set("Content-Type", "application/x-protobuf;charset=UTF-8")
 		proxyServer := proxy.NewReverseProxy(addr)
 		proxyServer.ServeHTTP(FastHttpRoutrip(ctx))
