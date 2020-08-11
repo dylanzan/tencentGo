@@ -78,7 +78,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	b, err := ioutil.ReadAll(req.Body)
 
 	//process request change
-	//b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
+	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
 	newRequest := &pb_tencent.Request{}
 	err = proto.Unmarshal(b, newRequest)
 
@@ -117,7 +117,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if err != nil {
 		return nil, err
 	}
-	//b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
+	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
 	//body = ioutil.NopCloser(bytes.NewReader(b))
 	newResponse := &pb_tencent.Response{}
 
@@ -126,7 +126,6 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if len(newResponse.GetSeatbid()) > 0 && len(newResponse.GetSeatbid()[0].GetBid()) > 0 {
 		adid := newResponse.Seatbid[0].Bid[0].GetAdid()
 		bodyMap.Store(dealid, bodyContent{adid, 0})
-
 	} else {
 		bodyMap.Store(dealid, bodyContent{"0", 1})
 
