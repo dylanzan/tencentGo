@@ -200,13 +200,13 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 		ctx.Request.SetRequestURI("http://" + addr + "/tencent.htm")
 		ctx.Request.Header.Set("Content-Type", "application/x-protobuf;charset=UTF-8")
 
+		//proxyServer:=proxy.NewReverseProxy(addr)
 		proxyServer, err := pool.Get(addr)
-		if err != nil || ctx == nil {
+		if ctx == nil {
 			log.Println("ProxyPoolHandler got an error: ", err)
 			ctx.SetStatusCode(204)
 			return
 		}
-
 		defer pool.Put(proxyServer)
 		proxyServer.ServeHTTP(FastHttpRoutrip(ctx))
 	}
