@@ -74,6 +74,14 @@ func contains(s []string, e string, isExact bool) bool {
 }
 
 func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+
+	defer func(resp *http.Response) {
+		err := recover()
+
+		if err != nil {
+			resp.StatusCode = 204
+		}
+	}(resp)
 	// copy request
 	b, err := ioutil.ReadAll(req.Body)
 
@@ -145,6 +153,14 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 }
 
 func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	defer func(w http.ResponseWriter) {
+		err := recover()
+
+		if err != nil {
+			w.WriteHeader(204)
+		}
+	}(w)
 
 	b, err := ioutil.ReadAll(r.Body)
 
