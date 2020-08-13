@@ -2,18 +2,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
-	"io/ioutil"
+	fastHttp "github.com/valyala/fasthttp"
 	"log"
 	"math/rand"
-	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync"
 	pb_tencent "tencentgo/model/tencent"
+	"time"
 )
 
 type RConfig struct {
@@ -45,134 +45,112 @@ var (
 
 	allDealsMap map[string]bool //存放所有deals
 	rconfig     RConfig
+	fasthttpClient =NewFastHttpClient
+	reqIns =&Req{}
 )
 
-//var bodyMap map[string]bodyContent
-
-//var mutex = new(sync.Mutex)
-
-type transport struct {
-	http.RoundTripper
-}
-
-var _ http.RoundTripper = &transport{}
-
-func contains(s []string, e string, isExact bool) bool {
-	for _, a := range s {
-		a = strings.TrimSpace(a)
-		if isExact {
-			if a == e {
-				return true
-			}
-		} else {
-			if strings.Contains(a, e) || strings.Contains(e, a) {
-				return true
-			}
-		}
+func NewFastHttpClient() *fastHttp.Client {
+	return &fastHttp.Client{
+		MaxConnsPerHost:    100,
+		MaxConnWaitTimeout: 30 * time.Second,
 	}
-	return false
 }
 
-func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 
-	defer func(resp *http.Response) {
-		err := recover()
+type Req struct {
+	ctx context.Context
+}
 
-		if err != nil {
-			resp.StatusCode = 204
+func (r Req)RoundTrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx{
+
+	defer func() {
+		err:=recover()
+
+		if err!=nil{
+
 		}
-	}(resp)
-	// copy request
-	b, err := ioutil.ReadAll(req.Body)
+	}()
+
+	req:=&ctx.Request
+	resp:=&ctx.Response
+	if r.ctx==nil || ctx.Request.Body()==nil{
+		return nil
+	}
+
+	b:=ctx.Request.Body()
 
 	//process request change
-	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
-	newRequest := &pb_tencent.Request{}
-	err = proto.Unmarshal(b, newRequest)
+	bodyByte := bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
+	newRequest:=&pb_tencent.Request{}
 
-	//modify b if necessary
+	err:=proto.Unmarshal(bodyByte,newRequest)
 
-	//turn to pb and set back
-	data, err := proto.Marshal(newRequest) //TODO: if no changed, just send original pb to http
-	body := ioutil.NopCloser(bytes.NewReader(data))
-	req.Body = body
-	req.ContentLength = int64(len(data))
-	//req.Header.Set("Content-Length", strconv.Itoa(len(data)))
-
-	//set back
-	//req.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-
-	// reverse proxy
-	resp, err = t.RoundTripper.RoundTrip(req)
-
-	// error to nil return
-	if err != nil {
-		return nil, err
+	if err!=nil{
+		log.Println(err)
+		resp.SetStatusCode(204)
+		return nil
 	}
 
-	err = req.Body.Close()
-	if err != nil {
-		return nil, err
+	req.SetBody(bodyByte)
+
+	if err:=fastHttp.Do(req,resp);err!=nil{
+		resp.SetStatusCode(204)
+		log.Println(err)
 	}
 
-	//TODO: should be error return here, to find out a new solution
-
-	b, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+	if resp==nil{
+		return nil
 	}
-	err = resp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
-	//body = ioutil.NopCloser(bytes.NewReader(b))
-	newResponse := &pb_tencent.Response{}
 
-	err = proto.Unmarshal(b, newResponse)
+	newResponse:=&pb_tencent.Response{}
+
+	respBody:=resp.Body()
+
+	err=proto.Unmarshal(respBody,newResponse)
+
+	if err!=nil{
+		log.Println("proto parse err is :",err)
+	}
+
+	respBody=bytes.Replace(respBody, []byte("server"), []byte("schmerver"), -1)
+
 	dealid := newRequest.Impression[0].GetDealid()
 	if len(newResponse.GetSeatbid()) > 0 && len(newResponse.GetSeatbid()[0].GetBid()) > 0 {
 		adid := newResponse.Seatbid[0].Bid[0].GetAdid()
 		bodyMap.Store(dealid, bodyContent{adid, 0})
 	} else {
 		bodyMap.Store(dealid, bodyContent{"0", 1})
-
 	}
 
-	//fmt.Println("roundTrip")
-	fmt.Println("roundTrip REQREQREQREQ      " + newRequest.String())
-	fmt.Println("roundTrip RESPRESPRESPRESP  " + newResponse.String())
+	data,err:=proto.Marshal(newResponse)
+	if err!=nil{
+		log.Println("proto marshal err is ",err)
+	}
 
-	// pb object to response body and return to hhtp
-	data, err = proto.Marshal(newResponse) //TODO: if no changed, just send original pb to http
-	body = ioutil.NopCloser(bytes.NewReader(data))
-	resp.Body = body
-	resp.ContentLength = int64(len(data))
-	//resp.Header.Set("Content-Length", strconv.Itoa(len(data)))
-	return resp, nil
+	resp.SetBody(data)
+
+	resp.Header.SetContentLength(len(data))
+
+	return  ctx
+
 }
 
-func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 
-	defer func(w http.ResponseWriter) {
-		err := recover()
+	req:=&ctx.Request
+	resp:=&ctx.Response
 
-		if err != nil {
-			w.WriteHeader(204)
-		}
-	}(w)
-
-	b, err := ioutil.ReadAll(r.Body)
-
-	if err != nil {
-		log.Printf("read all err is %v", err)
-	}
+	b:=req.Body()
 
 	//process request change
 	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
 	newRequest := &pb_tencent.Request{}
-	err = proto.Unmarshal(b, newRequest)
+	err := proto.Unmarshal(b, newRequest)
 	//res, _ := json.Marshal(newRequest)
+
+	if err!=nil{
+		log.Println("parse newquest body err is ",err)
+	}
 	//log.Println(string(res))
 	addr := rconfig.DefaultUpstreamAddr
 	//if newRequest.Device.DeviceId != nil {
@@ -241,11 +219,10 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				data, err := proto.Marshal(newResponse) //TODO: if no changed, just send original pb to http
 				if err != nil {
-					w.WriteHeader(204)
+					resp.SetStatusCode(204)
 				}
 				//bodyMap[*(newRequest.Impression[0].Dealid)] = bodyContent{bodycontent.body, bodycontent.cnt + 1}
-				w.Write(data)
-
+				resp.SetBody(data)
 				//fmt.Println("serverHttp")
 				fmt.Println("serverHttp REQREQREQREQ         " + newRequest.String())
 				fmt.Println("serverHttp RESPRESPRESPRESP     " + newResponse.String())
@@ -253,12 +230,21 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		req.SetBody(b)
+		req.Header.SetHost(remote.String())
+
+
+
+		responseCtx:=reqIns.RoundTrip(ctx)
+
+		resp.Header.SetContentLength(len(b))
+		resp.SetBody(responseCtx.Response.Body())
 		//if not in bodyMap, reverseProxy and transpot RoundTrip,
-		body := ioutil.NopCloser(bytes.NewReader(b))
-		r.Body = body
-		proxy := httputil.NewSingleHostReverseProxy(remote)
-		proxy.Transport = &transport{http.DefaultTransport}
-		proxy.ServeHTTP(w, r)
+		//body := ioutil.NopCloser(bytes.NewReader(b))
+		//r.Body = body
+		//proxy := httputil.NewSingleHostReverseProxy(remote)
+		//proxy.Transport = &transport{http.DefaultTransport}
+		//proxy.ServeHTTP(w, r)
 
 	}
 
@@ -266,7 +252,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func startServer() {
 	//被代理的服务器host和port
-	h := &handle{}
+	/*h := &handle{}
 
 	srv := http.Server{
 		Addr:    ":" + rconfig.ListenPort,
@@ -280,7 +266,10 @@ func startServer() {
 
 	if err != nil {
 		log.Fatalln("ListenAndServe: ", err)
-	}
+	}*/
+
+
+
 }
 
 func main() {
