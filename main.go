@@ -38,15 +38,23 @@ type bodyContent struct {
 	cnt  int
 }
 
+type bodyCacheStruct struct {
+	requestUrl   string
+	requestBody  []byte
+	responseBody []byte
+}
+
 var (
 	bodyMap = &sync.Map{}
 
+	bodyCache = &sync.Map{}
+
 	configMap map[string]upStreamStruct
 
-	allDealsMap map[string]bool //存放所有deals
-	rconfig     RConfig
-	fasthttpClient =NewFastHttpClient
-	reqIns =&Req{}
+	allDealsMap    map[string]bool //存放所有deals
+	rconfig        RConfig
+	fasthttpClient = NewFastHttpClient
+	reqIns         = &Req{}
 )
 
 func NewFastHttpClient() *fastHttp.Client {
@@ -56,36 +64,35 @@ func NewFastHttpClient() *fastHttp.Client {
 	}
 }
 
-
 type Req struct {
 	ctx context.Context
 }
 
-func (r Req)RoundTrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx{
+func (r Req) RoundTrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx {
 
 	defer func() {
-		err:=recover()
+		err := recover()
 
-		if err!=nil{
-
+		if err != nil {
+			ctx.Response.SetStatusCode(204)
 		}
 	}()
 
-	req:=&ctx.Request
-	resp:=&ctx.Response
-	if r.ctx==nil || ctx.Request.Body()==nil{
+	req := &ctx.Request
+	resp := &ctx.Response
+	if r.ctx == nil || ctx.Request.Body() == nil {
 		return nil
 	}
 
-	b:=ctx.Request.Body()
+	b := ctx.Request.Body()
 
 	//process request change
 	bodyByte := bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
-	newRequest:=&pb_tencent.Request{}
+	newRequest := &pb_tencent.Request{}
 
-	err:=proto.Unmarshal(bodyByte,newRequest)
+	err := proto.Unmarshal(bodyByte, newRequest)
 
-	if err!=nil{
+	if err != nil {
 		log.Println(err)
 		resp.SetStatusCode(204)
 		return nil
@@ -93,26 +100,26 @@ func (r Req)RoundTrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx{
 
 	req.SetBody(bodyByte)
 
-	if err:=fastHttp.Do(req,resp);err!=nil{
+	if err := fastHttp.Do(req, resp); err != nil {
 		resp.SetStatusCode(204)
 		log.Println(err)
 	}
 
-	if resp==nil{
+	if resp == nil {
 		return nil
 	}
 
-	newResponse:=&pb_tencent.Response{}
+	newResponse := &pb_tencent.Response{}
 
-	respBody:=resp.Body()
+	respBody := resp.Body()
 
-	err=proto.Unmarshal(respBody,newResponse)
+	err = proto.Unmarshal(respBody, newResponse)
 
-	if err!=nil{
-		log.Println("proto parse err is :",err)
+	if err != nil {
+		log.Println("proto parse err is :", err)
 	}
 
-	respBody=bytes.Replace(respBody, []byte("server"), []byte("schmerver"), -1)
+	respBody = bytes.Replace(respBody, []byte("server"), []byte("schmerver"), -1)
 
 	dealid := newRequest.Impression[0].GetDealid()
 	if len(newResponse.GetSeatbid()) > 0 && len(newResponse.GetSeatbid()[0].GetBid()) > 0 {
@@ -122,25 +129,25 @@ func (r Req)RoundTrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx{
 		bodyMap.Store(dealid, bodyContent{"0", 1})
 	}
 
-	data,err:=proto.Marshal(newResponse)
-	if err!=nil{
-		log.Println("proto marshal err is ",err)
+	data, err := proto.Marshal(newResponse)
+	if err != nil {
+		log.Println("proto marshal err is ", err)
 	}
 
 	resp.SetBody(data)
 
 	resp.Header.SetContentLength(len(data))
 
-	return  ctx
+	return ctx
 
 }
 
 func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 
-	req:=&ctx.Request
-	resp:=&ctx.Response
+	req := &ctx.Request
+	resp := &ctx.Response
 
-	b:=req.Body()
+	b := req.Body()
 
 	//process request change
 	b = bytes.Replace(b, []byte("server"), []byte("schmerver"), -1)
@@ -148,8 +155,8 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 	err := proto.Unmarshal(b, newRequest)
 	//res, _ := json.Marshal(newRequest)
 
-	if err!=nil{
-		log.Println("parse newquest body err is ",err)
+	if err != nil {
+		log.Println("parse newquest body err is ", err)
 	}
 	//log.Println(string(res))
 	addr := rconfig.DefaultUpstreamAddr
@@ -171,6 +178,13 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 				}
 			}
 		}
+
+		//缓存
+		bcs := &bodyCacheStruct{}
+		bcs.requestBody = req.Body()
+		bcs.responseBody = nil
+		bcs.requestUrl = addr
+		bodyCache.LoadOrStore(newRequestDealId, bcs)
 
 		remote, err := url.Parse("http://" + addr)
 		if err != nil {
@@ -232,10 +246,7 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 
 		req.SetBody(b)
 		req.Header.SetHost(remote.String())
-
-
-
-		responseCtx:=reqIns.RoundTrip(ctx)
+		responseCtx := reqIns.RoundTrip(ctx)
 
 		resp.Header.SetContentLength(len(b))
 		resp.SetBody(responseCtx.Response.Body())
@@ -248,6 +259,43 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 
 	}
 
+}
+
+//每隔一分钟更新body cache
+func updateBodyCache() {
+
+	req := fastHttp.AcquireRequest()
+	resp := fastHttp.AcquireResponse()
+
+	defer func() {
+		fastHttp.ReleaseResponse(resp)
+		fastHttp.ReleaseRequest(req)
+	}()
+
+	for range time.Tick(time.Minute * 1) {
+
+		bodyCache.Range(func(key, value interface{}) bool {
+			url := value.(bodyCacheStruct).requestUrl
+			reqBody := value.(bodyCacheStruct).requestBody
+			req.Header.SetMethod("POST")
+			req.SetRequestURI(url)
+			req.SetBody(reqBody)
+
+			if err := fasthttpClient().Do(req, resp); err != nil {
+				log.Println("request err is ", err.Error())
+			}
+
+			if resp.Body() != nil {
+				newBcs := new(bodyCacheStruct)
+				newBcs.requestUrl = url
+				newBcs.requestBody = reqBody
+				newBcs.responseBody = resp.Body()
+				bodyCache.Store(key, newBcs)
+			}
+
+			return true
+		})
+	}
 }
 
 func startServer() {
@@ -267,8 +315,6 @@ func startServer() {
 	if err != nil {
 		log.Fatalln("ListenAndServe: ", err)
 	}*/
-
-
 
 }
 
