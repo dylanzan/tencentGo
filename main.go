@@ -202,7 +202,7 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 
 		//proxyServer:=proxy.NewReverseProxy(addr)
 		proxyServer, err := pool.Get(addr)
-		if ctx == nil {
+		if FastHttpRoutrip(ctx) == nil {
 			log.Println("ProxyPoolHandler got an error: ", err)
 			ctx.SetStatusCode(204)
 			return
