@@ -200,30 +200,30 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 		ctx.Request.SetRequestURI("http://" + addr + "/tencent.htm")
 		ctx.Request.Header.Set("Content-Type", "application/x-protobuf;charset=UTF-8")
 
-		//proxyServer:=proxy.NewReverseProxy(addr)
-		proxyServer, err := pool.Get(addr)
+		proxyServer := proxy.NewReverseProxy(addr)
+		//proxyServer, err := pool.Get(addr)
 		if FastHttpRoutrip(ctx) == nil {
 			log.Println("ProxyPoolHandler got an error: ", err)
 			ctx.SetStatusCode(204)
 			return
 		}
-		defer pool.Put(proxyServer)
+		//defer pool.Put(proxyServer)
 		proxyServer.ServeHTTP(FastHttpRoutrip(ctx))
 	}
 }
 
-func factory(hostAddr string) (*proxy.ReverseProxy, error) {
+/*func factory(hostAddr string) (*proxy.ReverseProxy, error) {
 	p := proxy.NewReverseProxy(hostAddr)
 	return p, nil
-}
+}*/
 
 func startServer() {
 	//被代理的服务器host和port
 	h := &handle{}
 
-	initialCap, maxCap := 100, 1000
+	//initialCap, maxCap := 100, 1000
 
-	pool, err = proxy.NewChanPool(initialCap, maxCap, factory)
+	//pool, err = proxy.NewChanPool(initialCap, maxCap, factory)
 	err := fastHttp.ListenAndServe(":"+rconfig.ListenPort, h.ServeHTTP)
 
 	if err != nil {
