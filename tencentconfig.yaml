@@ -5,8 +5,9 @@ UpstreamAddrs:
   - 4|120.27.220.175,7206008
   - 5|120.27.220.175,7205996
   - 6|120.27.220.175,5063682
+  - 7|120.27.220.175,7238470
 
 DefaultUpstreamAddr: 120.27.220.175
 ListenPort: 8081
-TimesBackToSource: 100
+TimesBackToSource: 500
 NoExt: 1

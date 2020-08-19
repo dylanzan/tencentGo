@@ -8,7 +8,6 @@ import (
 	fastHttp "github.com/valyala/fasthttp"
 	proxy "github.com/yeqown/fasthttp-reverse-proxy"
 	"log"
-	"math/rand"
 	"strings"
 	"sync"
 	pb_tencent "tencentgo/model/tencent"
@@ -47,13 +46,14 @@ var (
 
 	client = NewFastHttpClient()
 	//pool   proxy.Pool
-	err error
+	err           error
+	upStreamCount int = 0
 )
 
 func NewFastHttpClient() *fastHttp.Client {
 	return &fastHttp.Client{
 		MaxConnsPerHost:    512000,
-		MaxConnWaitTimeout: 30 * time.Second,
+		MaxConnWaitTimeout: 20 * time.Second,
 	}
 }
 
@@ -151,8 +151,8 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 
 		_, dealOk := allDealsMap[newRequestDealId] //判断此dealId 是否在配置文件deal列表中
 		if ok && dealOk && bodycontent != nil {
-			if rand.Intn(rconfig.TimesBackToSource) > 1 {
-				fmt.Println(newRequestDealId + " ==>" + addr)
+			if upStreamCount <= rconfig.TimesBackToSource {
+				//fmt.Println(newRequestDealId + " ==>" + addr)
 				id := newRequest.GetId()
 				bidid := newRequest.Impression[0].GetId()
 				adid := bodycontent.(bodyContent).body
@@ -187,13 +187,15 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 				data, err := proto.Marshal(newResponse) //TODO: if no changed, just send original pb to http
 				if err != nil {
 					ctx.Response.SetStatusCode(204)
-					//w.WriteHeader(204)
 				}
 				ctx.Write(data)
 
 				fmt.Println("serverHttp REQREQREQREQ         " + newRequest.String())
 				fmt.Println("serverHttp RESPRESPRESPRESP     " + newResponse.String())
+				upStreamCount++
 				return
+			} else {
+				upStreamCount = 0
 			}
 		}
 
