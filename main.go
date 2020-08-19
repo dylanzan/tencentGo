@@ -46,13 +46,13 @@ var (
 	rconfig     RConfig
 
 	client = NewFastHttpClient()
-	pool   proxy.Pool
-	err    error
+	//pool   proxy.Pool
+	err error
 )
 
 func NewFastHttpClient() *fastHttp.Client {
 	return &fastHttp.Client{
-		MaxConnsPerHost:    100,
+		MaxConnsPerHost:    512000,
 		MaxConnWaitTimeout: 30 * time.Second,
 	}
 }
