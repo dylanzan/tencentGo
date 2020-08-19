@@ -75,13 +75,13 @@ func contains(s []string, e string, isExact bool) bool {
 
 func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 
-	defer func(resp *http.Response) {
+	/*defer func(resp *http.Response) {
 		err := recover()
 
 		if err != nil {
 			resp.StatusCode = 204
 		}
-	}(resp)
+	}(resp)*/
 	// copy request
 	b, err := ioutil.ReadAll(req.Body)
 
@@ -154,13 +154,13 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	defer func(w http.ResponseWriter) {
+	/*	defer func(w http.ResponseWriter) {
 		err := recover()
 
 		if err != nil {
 			w.WriteHeader(204)
 		}
-	}(w)
+	}(w)*/
 
 	b, err := ioutil.ReadAll(r.Body)
 
@@ -256,6 +256,7 @@ func (this *handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//if not in bodyMap, reverseProxy and transpot RoundTrip,
 		body := ioutil.NopCloser(bytes.NewReader(b))
 		r.Body = body
+		r.Header.Set("Content-Type", "application/x-protobuf;charset=UTF-8")
 		proxy := httputil.NewSingleHostReverseProxy(remote)
 		proxy.Transport = &transport{http.DefaultTransport}
 		proxy.ServeHTTP(w, r)
