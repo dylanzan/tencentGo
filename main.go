@@ -41,19 +41,20 @@ var (
 
 	configMap map[string]upStreamStruct
 
-	allDealsMap map[string]bool //存放所有deals
-	rconfig     RConfig
-
-	client = NewFastHttpClient()
-	//pool   proxy.Pool
+	allDealsMap   map[string]bool //存放所有deals
+	rconfig       RConfig
+	client        = NewFastHttpClient()
 	err           error
 	upStreamCount int = 0
 )
 
 func NewFastHttpClient() *fastHttp.Client {
 	return &fastHttp.Client{
-		MaxConnsPerHost:    512000,
-		MaxConnWaitTimeout: 20 * time.Second,
+		MaxConnsPerHost:     512000,
+		MaxConnWaitTimeout:  10 * time.Second,
+		ReadTimeout:         8 * time.Second,
+		WriteTimeout:        8 * time.Second,
+		MaxIdleConnDuration: 8 * time.Second,
 	}
 }
 
@@ -236,8 +237,8 @@ func startServer() {
 }
 
 func main() {
-	//initProxy() //初始化代理池
 
+	//initProxy() //初始化代理池
 	proxy.SetProduction()
 	configMap = make(map[string]upStreamStruct)
 	allDealsMap = make(map[string]bool)
