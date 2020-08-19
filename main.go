@@ -50,11 +50,11 @@ var (
 
 func NewFastHttpClient() *fastHttp.Client {
 	return &fastHttp.Client{
-		MaxConnsPerHost:     512000,
-		MaxConnWaitTimeout:  10 * time.Second,
-		ReadTimeout:         8 * time.Second,
-		WriteTimeout:        8 * time.Second,
-		MaxIdleConnDuration: 8 * time.Second,
+		MaxConnsPerHost:    512000,
+		MaxConnWaitTimeout: 10 * time.Second,
+		//ReadTimeout:         8 * time.Second,
+		//WriteTimeout:        8 * time.Second,
+		//MaxIdleConnDuration: 8 * time.Second,
 	}
 }
 
