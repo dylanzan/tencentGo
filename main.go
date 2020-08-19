@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	pb_tencent "tencentgo/model/tencent"
+	"time"
 )
 
 type RConfig struct {
@@ -44,17 +45,17 @@ var (
 	allDealsMap map[string]bool //存放所有deals
 	rconfig     RConfig
 
-	//client = NewFastHttpClient()
+	client = NewFastHttpClient()
 	//pool   proxy.Pool
 	err error
 )
 
-/*func NewFastHttpClient() *fastHttp.Client {
+func NewFastHttpClient() *fastHttp.Client {
 	return &fastHttp.Client{
-		MaxConnsPerHost:    512,
+		MaxConnsPerHost:    512000,
 		MaxConnWaitTimeout: 30 * time.Second,
 	}
-}*/
+}
 
 func FastHttpRoutrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx {
 
@@ -78,7 +79,7 @@ func FastHttpRoutrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx {
 
 	req.SetBody(body)
 
-	client := &fastHttp.Client{}
+	//client := &fastHttp.Client{}
 	if err := client.Do(req, resp); err != nil {
 		log.Println("fasthttp do err is :", err)
 		return nil
