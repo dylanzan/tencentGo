@@ -6,7 +6,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
 	fastHttp "github.com/valyala/fasthttp"
-	proxy "github.com/yeqown/fasthttp-reverse-proxy"
 	"log"
 	"strings"
 	"sync"
@@ -99,7 +98,6 @@ func FastHttpRoutrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx {
 		bodyMap.Store(dealid, bodyContent{"0", 1})
 	}
 
-	//fmt.Println("roundTrip")
 	fmt.Println("roundTrip REQREQREQREQ      " + newRequest.String())
 	fmt.Println("roundTrip RESPRESPRESPRESP  " + newResponse.String())
 
@@ -142,13 +140,11 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 			}
 		}
 
-		//remote, err := url.Parse("http://" + addr)
 		if err != nil {
 			panic(err)
 		}
-		//mutex.Lock()
+
 		bodycontent, ok := bodyMap.Load(newRequestDealId)
-		//mutex.Unlock()
 
 		_, dealOk := allDealsMap[newRequestDealId] //判断此dealId 是否在配置文件deal列表中
 		if ok && dealOk && bodycontent != nil {
@@ -159,9 +155,7 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 				adid := bodycontent.(bodyContent).body
 				price := float32(9000)
 				extid := "ssp" + adid
-				//mutex.Lock()
-				//bodyMap[dealid] = bodyContent{adid, bodycontent.cnt + 1}
-				//mutex.Unlock()
+
 				err = proto.Unmarshal(b, newRequest)
 				newResponse := &pb_tencent.Response{}
 				if adid != "0" {
@@ -204,31 +198,19 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 		ctx.Request.SetRequestURI("http://" + addr + "/tencent.htm")
 		ctx.Request.Header.Set("Content-Type", "application/x-protobuf;charset=UTF-8")
 
-		proxyServer := proxy.NewReverseProxy(addr)
-		//proxyServer, err := pool.Get(addr)
-		fCtx := FastHttpRoutrip(ctx)
-		if fCtx == nil {
+		if fCtx := FastHttpRoutrip(ctx); fCtx == nil {
 			log.Println("ProxyPoolHandler got an error: ", err)
 			ctx.SetStatusCode(204)
 			return
 		}
-		//defer pool.Put(proxyServer)
-		proxyServer.ServeHTTP(fCtx)
+
 	}
 }
-
-/*func factory(hostAddr string) (*proxy.ReverseProxy, error) {
-	p := proxy.NewReverseProxy(hostAddr)
-	return p, nil
-}*/
 
 func startServer() {
 	//被代理的服务器host和port
 	h := &handle{}
 
-	//initialCap, maxCap := 100, 1000
-
-	//pool, err = proxy.NewChanPool(initialCap, maxCap, factory)
 	err := fastHttp.ListenAndServe(":"+rconfig.ListenPort, h.ServeHTTP)
 
 	if err != nil {
@@ -239,7 +221,7 @@ func startServer() {
 func main() {
 
 	//initProxy() //初始化代理池
-	proxy.SetProduction()
+	//proxy.SetProduction()
 	configMap = make(map[string]upStreamStruct)
 	allDealsMap = make(map[string]bool)
 
