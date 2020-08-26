@@ -80,8 +80,9 @@ func FastHttpRoutrip(ctx *fastHttp.RequestCtx) *fastHttp.RequestCtx {
 	req.SetBody(body)
 
 	//client := &fastHttp.Client{}
-	if err := client.Do(req, resp); err != nil {
+	if err := client.DoTimeout(req, resp, 5*time.Second); err != nil {
 		log.Println("fasthttp do err is :", err)
+		resp.SetStatusCode(204)
 		return nil
 	}
 
