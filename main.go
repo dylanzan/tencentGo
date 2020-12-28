@@ -130,7 +130,7 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 	}
 
 	//记录落盘数据
-	go DataReport(newRequest)
+	DataReport(newRequest)
 
 	addr := rconfig.DefaultUpstreamAddr
 
