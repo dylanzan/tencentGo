@@ -217,22 +217,30 @@ func DataReport(bidRequest *pb_tencent.Request) {
 
 	if device != nil {
 		if device.GetIdfa() != "" {
-			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetIdfa())
+			adxc.AdxVisitorId = device.GetIdfa()
 			adxc.DeviceType = model.IDFA
 			adxc.UserAgent = device.GetUa()
 			adxc.BidTime = ""
 
 		} else if device.GetImei() != "" {
-			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetImei())
-
+			adxc.AdxVisitorId = device.GetImei()
+			adxc.DeviceType = model.IMEI
+			adxc.UserAgent = device.GetUa()
+			adxc.BidTime = ""
 		} else if device.GetOpenudid() != "" {
-			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetOpenudid())
+			adxc.AdxVisitorId = device.GetOpenudid()
+			adxc.DeviceType = model.OPENUUID
+			adxc.UserAgent = device.GetUa()
+			adxc.BidTime = ""
 
 		} else if device.GetAndroidid() != "" {
-			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetAndroidid())
+			adxc.AdxVisitorId = device.GetAndroidid()
+			adxc.DeviceType = model.ANDROIDID
+			adxc.UserAgent = device.GetUa()
+			adxc.BidTime = ""
 
 		} else if device.GetMac() != "" {
-			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetMac())
+			adxc.AdxVisitorId = device.GetMac()
 
 		} else {
 			if bidRequest.GetUser() != nil {
