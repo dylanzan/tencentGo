@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
 	fastHttp "github.com/valyala/fasthttp"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"tencentgo/model"
@@ -14,7 +16,11 @@ import (
 	"time"
 )
 
+var mutex *sync.Mutex
+
 type RConfig struct {
+	OpenLogs            bool
+	LogPath             string
 	UpstreamAddrs       []string
 	DefaultUpstreamAddr string
 	ListenPort          string
@@ -123,6 +129,9 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 		return
 	}
 
+	//记录落盘数据
+	go DataReport(newRequest)
+
 	addr := rconfig.DefaultUpstreamAddr
 
 	var newRequestDealId string
@@ -212,49 +221,66 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 //收集数据
 func DataReport(bidRequest *pb_tencent.Request) {
 
+	setAdxContext := func(deviceId, deviceType, uaStr, bidTime, ipaddress string, adxc *model.AdxContext) {
+		adxc.AdxVisitorId = deviceId
+		adxc.DeviceType = deviceType
+		adxc.IpAddress = ipaddress
+		adxc.UserAgent = uaStr
+		adxc.BidTime = bidTime
+	}
+
 	adxc := new(model.AdxContext)
 	device := bidRequest.GetDevice()
+	timeNow := time.Now()
+	bidtime := fmt.Sprintf("%02d%02d%02d%2d%2d%2d", timeNow.Year(), timeNow.Month(), timeNow.Day(), timeNow.Hour(), timeNow.Minute(), timeNow.Second())
 
 	if device != nil {
 		if device.GetIdfa() != "" {
-			adxc.AdxVisitorId = device.GetIdfa()
-			adxc.DeviceType = model.IDFA
-			adxc.UserAgent = device.GetUa()
-			adxc.BidTime = ""
-
+			setAdxContext(device.GetIdfa(), model.IDFA, device.GetUa(), bidtime, device.GetIp(), adxc)
 		} else if device.GetImei() != "" {
-			adxc.AdxVisitorId = device.GetImei()
-			adxc.DeviceType = model.IMEI
-			adxc.UserAgent = device.GetUa()
-			adxc.BidTime = ""
+			setAdxContext(device.GetImei(), model.IMEI, device.GetUa(), bidtime, device.GetIp(), adxc)
 		} else if device.GetOpenudid() != "" {
-			adxc.AdxVisitorId = device.GetOpenudid()
-			adxc.DeviceType = model.OPENUUID
-			adxc.UserAgent = device.GetUa()
-			adxc.BidTime = ""
-
+			setAdxContext(device.GetOpenudid(), model.OPENUUID, device.GetUa(), bidtime, device.GetIp(), adxc)
 		} else if device.GetAndroidid() != "" {
-			adxc.AdxVisitorId = device.GetAndroidid()
-			adxc.DeviceType = model.ANDROIDID
-			adxc.UserAgent = device.GetUa()
-			adxc.BidTime = ""
-
+			setAdxContext(device.GetAndroidid(), model.ANDROIDID, device.GetUa(), bidtime, device.GetIp(), adxc)
 		} else if device.GetMac() != "" {
-			adxc.AdxVisitorId = device.GetMac()
-
+			setAdxContext(device.GetMac(), model.MAC, device.GetUa(), bidtime, device.GetIp(), adxc)
 		} else {
 			if bidRequest.GetUser() != nil {
-				adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", bidRequest.GetUser().GetId())
-				//adxc.BidRequest.DeviceId = bidRequest.GetUser().GetId()
+				adxc.AdxVisitorId = fmt.Sprintf("%v", bidRequest.GetUser().GetId())
+				setAdxContext(bidRequest.GetUser().GetId(), model.PC, device.GetUa(), bidtime, device.GetIp(), adxc)
 			}
-		}
-	} else {
-		if bidRequest.GetUser() != nil {
-			adxc.AdxVisitorId = bidRequest.GetUser().GetId()
-			//adxc.BidRequest.DeviceId = bidRequest.GetUser().GetId()
 		}
 	}
 
+	dataRes := fmt.Sprintf("%v|%v|%v|%v", adxc.BidTime, adxc.AdxVisitorId, adxc.DeviceType, adxc.UserAgent)
+	WriteToFile(rconfig.OpenLogs, rconfig.LogPath, dataRes)
+
+}
+
+func WriteToFile(open bool, path string, res string) {
+
+	if !open {
+		return
+	}
+
+	mutex.Lock()
+	now := time.Now()
+
+	filePath := fmt.Sprintf("fl_%02d%02d%02d%02d%02d.csv", path, now.Year(), now.Month(), now.Day())
+	file, _ := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+
+	//及时关闭file句柄
+	defer file.Close()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+
+	//写入文件
+	write.WriteString(res + "\n")
+
+	//Flush将缓存的文件真正写入到文件中
+	write.Flush()
+	mutex.Unlock()
 }
 
 func startServer() {

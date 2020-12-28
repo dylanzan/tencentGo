@@ -6,6 +6,7 @@ const (
 	OPENUUID  string = "OPENUUID"
 	ANDROIDID string = "ANDROIDID"
 	PC        string = "PC"
+	MAC       string = "MAC"
 )
 
 type AdxContext struct {
