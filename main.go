@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-var mutex *sync.Mutex
+var mutex sync.Mutex
 
 type RConfig struct {
 	OpenLogs            bool
