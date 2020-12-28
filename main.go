@@ -9,6 +9,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"tencentgo/model"
 	pb_tencent "tencentgo/model/tencent"
 	"time"
 )
@@ -206,6 +207,46 @@ func (this *handle) ServeHTTP(ctx *fastHttp.RequestCtx) {
 		}
 
 	}
+}
+
+//收集数据
+func DataReport(bidRequest *pb_tencent.Request) {
+
+	adxc := new(model.AdxContext)
+	device := bidRequest.GetDevice()
+
+	if device != nil {
+		if device.GetIdfa() != "" {
+			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetIdfa())
+			adxc.DeviceType = model.IDFA
+			adxc.UserAgent = device.GetUa()
+			adxc.BidTime = ""
+
+		} else if device.GetImei() != "" {
+			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetImei())
+
+		} else if device.GetOpenudid() != "" {
+			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetOpenudid())
+
+		} else if device.GetAndroidid() != "" {
+			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetAndroidid())
+
+		} else if device.GetMac() != "" {
+			adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", device.GetMac())
+
+		} else {
+			if bidRequest.GetUser() != nil {
+				adxc.AdxVisitorId = fmt.Sprintf("DEVICE_%v", bidRequest.GetUser().GetId())
+				//adxc.BidRequest.DeviceId = bidRequest.GetUser().GetId()
+			}
+		}
+	} else {
+		if bidRequest.GetUser() != nil {
+			adxc.AdxVisitorId = bidRequest.GetUser().GetId()
+			//adxc.BidRequest.DeviceId = bidRequest.GetUser().GetId()
+		}
+	}
+
 }
 
 func startServer() {
