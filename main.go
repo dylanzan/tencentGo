@@ -267,7 +267,7 @@ func WriteToFile(open bool, path string, res string) {
 	mutex.Lock()
 	now := time.Now()
 
-	filePath := fmt.Sprintf("fl_%02d%02d%02d%02d%02d.csv", path, now.Year(), now.Month(), now.Day())
+	filePath := fmt.Sprintf("%v/fl_%02d%02d%02d%02d%02d.csv", path, now.Year(), now.Month(), now.Day())
 	file, _ := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 
 	//及时关闭file句柄

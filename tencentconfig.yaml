@@ -1,5 +1,5 @@
 OpenLogs: true
-LogPath:
+LogPath: logs
 UpstreamAddrs:
   - 1|120.27.220.175,7021488
   - 2|120.27.220.175,7206010
