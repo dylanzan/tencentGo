@@ -232,7 +232,7 @@ func DataReport(bidRequest *pb_tencent.Request) {
 	adxc := new(model.AdxContext)
 	device := bidRequest.GetDevice()
 	timeNow := time.Now()
-	bidtime := fmt.Sprintf("%02d%02d%02d%2d%2d%2d", timeNow.Year(), timeNow.Month(), timeNow.Day(), timeNow.Hour(), timeNow.Minute(), timeNow.Second())
+	bidtime := fmt.Sprintf("%02d%02d%02d%02d%02d%02d", timeNow.Year(), timeNow.Month(), timeNow.Day(), timeNow.Hour(), timeNow.Minute(), timeNow.Second())
 
 	if device != nil {
 		if device.GetIdfa() != "" {
@@ -267,7 +267,7 @@ func WriteToFile(open bool, path string, res string) {
 	mutex.Lock()
 	now := time.Now()
 
-	filePath := fmt.Sprintf("%v/fl_%02d%02d%02d%02d%02d.csv", path, now.Year(), now.Month(), now.Day())
+	filePath := fmt.Sprintf("%v/fl_%02d%02d%02d%02d.csv", path, now.Year(), now.Month(), now.Day(), now.Hour())
 	file, _ := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 
 	//及时关闭file句柄
