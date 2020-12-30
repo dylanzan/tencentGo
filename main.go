@@ -232,7 +232,7 @@ func DataReport(bidRequest *pb_tencent.Request) {
 	adxc := new(model.AdxContext)
 	device := bidRequest.GetDevice()
 	timeNow := time.Now()
-	bidtime := fmt.Sprintf("%02d%02d%02d%02d%02d%02d", timeNow.Year(), timeNow.Month(), timeNow.Day(), timeNow.Hour(), timeNow.Minute(), timeNow.Second())
+	bidtime := fmt.Sprintf("%02d-%02d-%02d %02d:%02d:%02d", timeNow.Year(), timeNow.Month(), timeNow.Day(), timeNow.Hour(), timeNow.Minute(), timeNow.Second())
 
 	if device != nil {
 		if device.GetIdfa() != "" {
