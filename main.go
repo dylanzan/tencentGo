@@ -253,7 +253,7 @@ func DataReport(bidRequest *pb_tencent.Request) {
 		}
 	}
 
-	dataRes := fmt.Sprintf("%v|%v|%v|%v", adxc.BidTime, adxc.AdxVisitorId, adxc.DeviceType, adxc.UserAgent)
+	dataRes := fmt.Sprintf("%v|%v|%v|%v|%v", adxc.BidTime, adxc.AdxVisitorId, adxc.DeviceType, adxc.IpAddress, adxc.UserAgent)
 	WriteToFile(rconfig.OpenLogs, rconfig.LogPath, dataRes)
 
 }
